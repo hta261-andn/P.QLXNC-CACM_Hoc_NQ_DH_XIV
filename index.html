@@ -424,6 +424,18 @@
       background:linear-gradient(135deg, rgba(34,197,94,.18), rgba(255,255,255,.10));
       border-color:rgba(34,197,94,.26);
     }
+    .cta-btn.lookup{
+      background:linear-gradient(135deg, rgba(168,85,247,.18), rgba(255,255,255,.10));
+      border-color:rgba(168,85,247,.28);
+    }
+    .lookup-note{
+      margin-top:-4px;
+      padding:0 4px;
+      color:var(--muted);
+      text-align:center;
+      font-size:13px;
+      line-height:1.6;
+    }
     .notes-list{
       display:grid;
       gap:12px;
@@ -795,6 +807,94 @@
       margin-bottom:8px;
     }
     .review-a{
+      color:#dfffea;
+      line-height:1.8;
+      background:rgba(34,197,94,.10);
+      border:1px solid rgba(34,197,94,.22);
+      padding:12px 14px;
+      border-radius:14px;
+    }
+    .lookup-search-shell{
+      display:grid;
+      gap:16px;
+    }
+    .lookup-input{
+      width:100%;
+      padding:16px 18px;
+      border-radius:18px;
+      border:1px solid rgba(125,211,252,.22);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      font:inherit;
+      outline:none;
+      transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .lookup-input::placeholder{
+      color:#9fb1cd;
+    }
+    .lookup-input:focus{
+      border-color:rgba(125,211,252,.45);
+      box-shadow:0 0 0 4px rgba(125,211,252,.10);
+      background:rgba(255,255,255,.08);
+    }
+    .lookup-result-meta{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    .lookup-result-list{
+      display:grid;
+      gap:14px;
+    }
+    .lookup-empty{
+      border-radius:20px;
+      padding:18px;
+      background:rgba(255,255,255,.05);
+      border:1px dashed rgba(255,255,255,.14);
+      color:#d9e6fb;
+      line-height:1.75;
+    }
+    .lookup-result-item{
+      border-radius:22px;
+      padding:18px;
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--stroke);
+    }
+    .lookup-result-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .lookup-result-head strong{
+      color:#fff6df;
+      font-size:15px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .lookup-result-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(242,198,109,.10);
+      border:1px solid rgba(242,198,109,.22);
+      color:#fff2cf;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .lookup-question{
+      color:#f7fbff;
+      line-height:1.8;
+      font-weight:700;
+      margin-bottom:12px;
+    }
+    .lookup-answer{
       color:#dfffea;
       line-height:1.8;
       background:rgba(34,197,94,.10);
@@ -1216,6 +1316,8 @@
             <button class="cta-btn review" id="reviewAnswersBtn" type="button">Xem lại đáp án trước khi luyện trắc nghiệm</button>
             <button class="cta-btn start" id="startPracticeBtn" type="button">Bắt đầu luyện trắc nghiệm</button>
             <button class="cta-btn mock" id="startMockBtn" type="button">THI THỬ (25 câu)</button>
+            <button class="cta-btn lookup" id="quickLookupBtn" type="button">TRA CỨU NHANH ĐÁP ÁN</button>
+            <div class="lookup-note">Nhập nội dung câu hỏi hoặc từ khóa liên quan câu hỏi</div>
           </div>
         </section>
       </div>
@@ -1380,6 +1482,7 @@
       reviewAnswersBtn: document.getElementById("reviewAnswersBtn"),
       startPracticeBtn: document.getElementById("startPracticeBtn"),
       startMockBtn: document.getElementById("startMockBtn"),
+      quickLookupBtn: document.getElementById("quickLookupBtn"),
       jumpToPracticeBtn: document.getElementById("jumpToPracticeBtn"),
       sessionShell: document.getElementById("sessionShell"),
       resultShell: document.getElementById("resultShell"),
@@ -1559,6 +1662,11 @@
         openMockConfirm();
       });
 
+      els.quickLookupBtn.addEventListener("click", () => {
+        playSound("click");
+        openQuickLookupModal();
+      });
+
       els.jumpToPracticeBtn.addEventListener("click", () => {
         playSound("click");
         document.getElementById("practiceSection").scrollIntoView({ behavior:"smooth", block:"start" });
@@ -1725,6 +1833,101 @@
         "Xem lại đáp án trước khi luyện trắc nghiệm",
         `<p class="modal-intro">Chỉ hiển thị các câu hỏi thuộc đúng những cụm nội dung mà đồng chí đã chọn.</p>${html}`
       );
+    }
+
+    function normalizeLookupText(value){
+      return String(value ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function searchQuestionsByKeyword(keyword){
+      const normalizedKeyword = normalizeLookupText(keyword);
+      if(!normalizedKeyword){
+        return [];
+      }
+
+      const tokens = normalizedKeyword.split(" ").filter(Boolean);
+
+      return QUESTIONS.map(q => {
+        const normalizedQuestion = normalizeLookupText(q.question);
+        const normalizedCorrect = normalizeLookupText(q.correct);
+        const haystack = `${normalizedQuestion} ${normalizedCorrect}`.trim();
+
+        let score = 0;
+        if(normalizedQuestion.includes(normalizedKeyword)) score += 140;
+        if(normalizedCorrect.includes(normalizedKeyword)) score += 90;
+        if(haystack.includes(normalizedKeyword)) score += 40;
+
+        tokens.forEach(token => {
+          if(normalizedQuestion.includes(token)) score += 18;
+          if(normalizedCorrect.includes(token)) score += 12;
+        });
+
+        return { q, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score || a.q.tt - b.q.tt)
+      .slice(0, 20)
+      .map(item => item.q);
+    }
+
+    function renderQuickLookupResults(keyword){
+      const resultBox = document.getElementById("lookupResultList");
+      const metaBox = document.getElementById("lookupResultMeta");
+      if(!resultBox || !metaBox) return;
+
+      const trimmedKeyword = String(keyword ?? "").trim();
+      if(!trimmedKeyword){
+        metaBox.textContent = "Kết quả sẽ hiển thị ngay phía dưới trong lúc đồng chí nhập nội dung câu hỏi hoặc từ khóa.";
+        resultBox.innerHTML = `<div class="lookup-empty">Hãy nhập nội dung câu hỏi hoặc từ khóa liên quan để phần mềm tự động tra cứu câu hỏi phù hợp và hiển thị đáp án đúng nhất.</div>`;
+        return;
+      }
+
+      const matches = searchQuestionsByKeyword(trimmedKeyword);
+      metaBox.textContent = `Tìm thấy ${matches.length} kết quả phù hợp nhất cho từ khóa: “${trimmedKeyword}”.`;
+
+      if(matches.length === 0){
+        resultBox.innerHTML = `<div class="lookup-empty">Chưa tìm thấy câu hỏi phù hợp. Đồng chí thử nhập ngắn hơn, đổi từ khóa khác, hoặc bỏ bớt ký tự để mở rộng kết quả.</div>`;
+        return;
+      }
+
+      resultBox.innerHTML = matches.map(q => `
+        <div class="lookup-result-item">
+          <div class="lookup-result-head">
+            <strong>${escapeHtml(q.clusterLabel)} • Câu ${q.tt}</strong>
+            <span class="lookup-result-pill">Đáp án đúng nhất</span>
+          </div>
+          <div class="lookup-question">${escapeHtml(q.question)}</div>
+          <div class="lookup-answer">${escapeHtml(q.correct)}</div>
+        </div>
+      `).join("");
+    }
+
+    function openQuickLookupModal(){
+      openModal(
+        "Tra cứu nhanh đáp án",
+        `<div class="lookup-search-shell">
+          <p class="modal-intro">Nhập nội dung câu hỏi hoặc từ khóa liên quan câu hỏi. Kết quả sẽ được tìm kiếm live liên tục theo quá trình đồng chí nhập.</p>
+          <input id="quickLookupInput" class="lookup-input" type="text" placeholder="Ví dụ: chuyển đổi số, bẫy thu nhập trung bình, thế trận lòng dân..." autocomplete="off" />
+          <div class="lookup-result-meta" id="lookupResultMeta">Kết quả sẽ hiển thị ngay phía dưới trong lúc đồng chí nhập nội dung câu hỏi hoặc từ khóa.</div>
+          <div class="lookup-result-list" id="lookupResultList">
+            <div class="lookup-empty">Hãy nhập nội dung câu hỏi hoặc từ khóa liên quan để phần mềm tự động tra cứu câu hỏi phù hợp và hiển thị đáp án đúng nhất.</div>
+          </div>
+        </div>`
+      );
+
+      requestAnimationFrame(() => {
+        const input = document.getElementById("quickLookupInput");
+        if(!input) return;
+        input.focus();
+        input.addEventListener("input", () => renderQuickLookupResults(input.value));
+      });
     }
 
     function preparePractice(){
