@@ -668,6 +668,26 @@
       background:rgba(255,255,255,.06);
       border:1px solid var(--stroke);
     }
+    .result-box-clickable{
+      cursor:pointer;
+      user-select:none;
+    }
+    .result-box-clickable:hover{
+      transform:translateY(-2px);
+      border-color:rgba(242,198,109,.30);
+      background:rgba(255,255,255,.08);
+      box-shadow:0 16px 32px rgba(0,0,0,.18);
+    }
+    .result-box-clickable:focus-visible{
+      outline:2px solid rgba(242,198,109,.78);
+      outline-offset:2px;
+    }
+    .result-grid-hint{
+      margin-top:12px;
+      color:var(--muted);
+      line-height:1.7;
+      font-size:14px;
+    }
     .result-box .k{
       font-size:13px;
       text-transform:uppercase;
@@ -1184,6 +1204,95 @@
       border-color:rgba(239,68,68,.24);
       background:rgba(239,68,68,.08);
     }
+    .detail-answer-box.all-options-box{
+      grid-column:1 / -1;
+    }
+    .detail-option-list{
+      display:grid;
+      gap:10px;
+      margin-top:4px;
+    }
+    .detail-option-item{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .detail-option-item.option-is-correct{
+      border-color:rgba(34,197,94,.24);
+      background:rgba(34,197,94,.08);
+    }
+    .detail-option-item.option-is-selected{
+      border-color:rgba(125,211,252,.22);
+      background:rgba(125,211,252,.08);
+    }
+    .detail-option-item.option-is-selected.option-is-wrong{
+      border-color:rgba(239,68,68,.24);
+      background:rgba(239,68,68,.08);
+    }
+    .detail-option-main{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      min-width:0;
+      flex:1;
+    }
+    .detail-option-letter{
+      width:30px;
+      min-width:30px;
+      height:30px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      background:rgba(255,255,255,.10);
+      color:#fff6df;
+      margin-top:1px;
+    }
+    .detail-option-text{
+      color:#eef6ff;
+      line-height:1.7;
+      word-break:break-word;
+      flex:1;
+    }
+    .detail-option-flags{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      gap:8px;
+      flex:0 0 auto;
+    }
+    .detail-option-flag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      border:1px solid transparent;
+    }
+    .detail-option-flag.is-selected{
+      background:rgba(125,211,252,.14);
+      border-color:rgba(125,211,252,.22);
+      color:#ddf5ff;
+    }
+    .detail-option-flag.is-correct{
+      background:rgba(34,197,94,.14);
+      border-color:rgba(34,197,94,.22);
+      color:#ddffea;
+    }
+    .detail-option-flag.is-wrong{
+      background:rgba(239,68,68,.14);
+      border-color:rgba(239,68,68,.22);
+      color:#ffe7e7;
+    }
     .detail-meta{
       display:flex;
       flex-wrap:wrap;
@@ -1217,6 +1326,8 @@
       .hero-actions,.result-actions,.session-actions,.confirm-actions{ width:100%; }
       .hero-actions > *, .result-actions > *, .session-actions > *, .confirm-actions > *{ flex:1 1 100%; }
       .cluster-grid,.mini-grid,.time-grid,.hero-stats,.result-grid,.detail-answer-grid{ grid-template-columns:1fr; }
+      .detail-option-item{ flex-direction:column; }
+      .detail-option-flags{ justify-content:flex-start; width:100%; }
       .cluster-btn{ min-height:unset; }
       .question-text{ font-size:21px; }
       .option-btn{ padding:14px 14px; }
@@ -1405,15 +1516,15 @@
       <div class="result-card">
         <h2 id="resultTitle">Kết quả</h2>
         <div class="result-grid">
-          <div class="result-box">
+          <div class="result-box result-box-clickable" id="resultCorrectBox" role="button" tabindex="0" aria-label="Xem chi tiết các câu đúng">
             <div class="k">Đúng</div>
             <div class="v" id="resultCorrect">0</div>
           </div>
-          <div class="result-box">
+          <div class="result-box result-box-clickable" id="resultWrongBox" role="button" tabindex="0" aria-label="Xem chi tiết các câu sai">
             <div class="k">Sai</div>
             <div class="v" id="resultWrong">0</div>
           </div>
-          <div class="result-box">
+          <div class="result-box result-box-clickable" id="resultTimedOutBox" role="button" tabindex="0" aria-label="Xem chi tiết các câu không đảm bảo thời gian">
             <div class="k">Không đảm bảo thời gian</div>
             <div class="v" id="resultTimedOut">0</div>
           </div>
@@ -1422,6 +1533,7 @@
             <div class="v" id="resultPercent">0%</div>
           </div>
         </div>
+        <div class="result-grid-hint">Nhấn vào từng ô Đúng, Sai hoặc Không đảm bảo thời gian để xem chi tiết ngay mà không cần kéo xuống dưới.</div>
 
         <div class="result-message" id="resultMessage"></div>
         <div class="result-sub" id="resultSub"></div>
@@ -1518,6 +1630,9 @@
       backHomeBtn: document.getElementById("backHomeBtn"),
       retryLastBtn: document.getElementById("retryLastBtn"),
       resultTitle: document.getElementById("resultTitle"),
+      resultCorrectBox: document.getElementById("resultCorrectBox"),
+      resultWrongBox: document.getElementById("resultWrongBox"),
+      resultTimedOutBox: document.getElementById("resultTimedOutBox"),
       resultCorrect: document.getElementById("resultCorrect"),
       resultWrong: document.getElementById("resultWrong"),
       resultTimedOut: document.getElementById("resultTimedOut"),
@@ -1734,6 +1849,10 @@
         retryLastMode();
       });
 
+      bindResultSummaryBox(els.resultCorrectBox, "correct");
+      bindResultSummaryBox(els.resultWrongBox, "wrong");
+      bindResultSummaryBox(els.resultTimedOutBox, "timeout");
+
       els.soundToggleBtn.addEventListener("click", () => {
         ensureAudio();
         state.soundEnabled = !state.soundEnabled;
@@ -1755,6 +1874,23 @@
       document.addEventListener("pointerdown", ensureAudio, { once:true });
       document.addEventListener("keydown", (e) => {
         if(e.key === "Escape" && els.mainModal.classList.contains("open")) closeModal();
+      });
+    }
+
+    function bindResultSummaryBox(el, type){
+      if(!el) return;
+
+      const handleOpen = () => {
+        playSound("click");
+        openResultSummaryModal(type);
+      };
+
+      el.addEventListener("click", handleOpen);
+      el.addEventListener("keydown", (e) => {
+        if(e.key === "Enter" || e.key === " "){
+          e.preventDefault();
+          handleOpen();
+        }
       });
     }
 
@@ -2242,7 +2378,13 @@
         correctText: correctAnswer.text,
         isCorrect: !isTimeout && answerIndex === correctIndex,
         timedOut: isTimeout,
-        elapsedMs: elapsed
+        elapsedMs: elapsed,
+        answerOptions: current.answers.map((ans, index) => ({
+          letter: LETTERS[index],
+          text: ans.text,
+          isCorrect: !!ans.isCorrect,
+          isSelected: !isTimeout && answerIndex === index
+        }))
       });
 
       state.transitionId = setTimeout(goToNextQuestion, s.feedbackDelay);
@@ -2256,19 +2398,62 @@
     }
 
 
-    function renderAnswerDetails(logs){
+    function renderOptionFlags(option){
+      const flags = [];
+      if(option.isSelected){
+        flags.push(`<span class="detail-option-flag is-selected">Đồng chí đã chọn</span>`);
+      }
+      if(option.isCorrect){
+        flags.push(`<span class="detail-option-flag is-correct">Đáp án đúng</span>`);
+      }
+      if(option.isSelected && !option.isCorrect){
+        flags.push(`<span class="detail-option-flag is-wrong">Chọn sai</span>`);
+      }
+      return flags.join("");
+    }
+
+    function renderAnswerOptions(item){
+      if(!Array.isArray(item.answerOptions) || !item.answerOptions.length){
+        return "";
+      }
+
+      return `
+        <div class="detail-answer-box all-options-box">
+          <div class="label">Toàn bộ đáp án của câu này</div>
+          <div class="detail-option-list">
+            ${item.answerOptions.map(option => {
+              const classNames = [
+                "detail-option-item",
+                option.isCorrect ? "option-is-correct" : "",
+                option.isSelected ? "option-is-selected" : "",
+                option.isSelected && !option.isCorrect ? "option-is-wrong" : ""
+              ].filter(Boolean).join(" ");
+              return `
+                <div class="${classNames}">
+                  <div class="detail-option-main">
+                    <span class="detail-option-letter">${option.letter}</span>
+                    <span class="detail-option-text">${escapeHtml(option.text)}</span>
+                  </div>
+                  <div class="detail-option-flags">${renderOptionFlags(option)}</div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function getAnswerDetailItemsHtml(logs){
       const count = Array.isArray(logs) ? logs.length : 0;
-      els.resultDetailCount.textContent = `${count} câu`;
       if(!count){
-        els.answerDetailList.innerHTML = `
+        return `
           <div class="detail-item">
             <div class="detail-question">Chưa có dữ liệu chi tiết để hiển thị.</div>
           </div>
         `;
-        return;
       }
 
-      els.answerDetailList.innerHTML = logs.map(item => {
+      return logs.map(item => {
         const statusClass = item.timedOut ? "timeout" : (item.isCorrect ? "correct" : "wrong");
         const wrapperClass = item.timedOut ? "status-timeout" : (item.isCorrect ? "status-correct" : "status-wrong");
         const statusLabel = item.timedOut ? "Quá thời gian" : (item.isCorrect ? "Đúng" : "Sai");
@@ -2276,6 +2461,7 @@
           ? "Không chọn đáp án (hết thời gian)"
           : `${item.selectedLetter}. ${escapeHtml(item.selectedText)}`;
         const selectedExtraClass = item.isCorrect || item.timedOut ? "" : " wrong-choice";
+
         return `
           <div class="detail-item ${wrapperClass}">
             <div class="detail-head">
@@ -2298,6 +2484,7 @@
                 <div class="label">Đáp án đúng nhất</div>
                 <div class="value">${item.correctLetter}. ${escapeHtml(item.correctText)}</div>
               </div>
+              ${renderAnswerOptions(item)}
             </div>
 
             <div class="detail-meta">
@@ -2307,6 +2494,56 @@
           </div>
         `;
       }).join("");
+    }
+
+    function renderAnswerDetails(logs){
+      const count = Array.isArray(logs) ? logs.length : 0;
+      els.resultDetailCount.textContent = `${count} câu`;
+      els.answerDetailList.innerHTML = getAnswerDetailItemsHtml(logs);
+    }
+
+    function openResultSummaryModal(type){
+      const logs = state.currentSession?.answersLog ?? [];
+      let filtered = [];
+      let title = "";
+      let intro = "";
+
+      switch(type){
+        case "correct":
+          filtered = logs.filter(item => item.isCorrect && !item.timedOut);
+          title = "Chi tiết nhóm câu đúng";
+          intro = `Có ${filtered.length} câu được làm đúng. Đồng chí có thể xem nhanh toàn bộ câu hỏi, phương án đã chọn và đầy đủ các đáp án ngay tại đây.`;
+          break;
+        case "wrong":
+          filtered = logs.filter(item => !item.isCorrect && !item.timedOut);
+          title = "Chi tiết nhóm câu sai";
+          intro = `Có ${filtered.length} câu làm sai. Mỗi câu đều hiển thị lựa chọn của đồng chí, đáp án đúng nhất và đầy đủ các phương án để tiện đối chiếu.`;
+          break;
+        case "timeout":
+          filtered = logs.filter(item => item.timedOut);
+          title = "Chi tiết nhóm câu không đảm bảo thời gian";
+          intro = `Có ${filtered.length} câu không đảm bảo thời gian. Các câu này được tính là sai và vẫn hiển thị đầy đủ đáp án để đồng chí ôn lại nhanh.`;
+          break;
+        default:
+          return;
+      }
+
+      openModal(
+        title,
+        `
+          <p class="modal-intro">${intro}</p>
+          <div class="result-details">
+            <div class="result-details-head">
+              <div>
+                <div class="result-details-label">Tra cứu nhanh theo nhóm kết quả</div>
+                <h3>${escapeHtml(title)}</h3>
+              </div>
+              <div class="result-details-count">${filtered.length} câu</div>
+            </div>
+            <div class="detail-list">${getAnswerDetailItemsHtml(filtered)}</div>
+          </div>
+        `
+      );
     }
 
 
